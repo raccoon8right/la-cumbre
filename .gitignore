@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Variables de entorno
+.env
+**/.env
+.env.local
+.env.production
+
+# Build creados
+dist/
+build/
+**/dist/
+**/build/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Misc
+*.lock
+!package-lock.json
