@@ -40,5 +40,5 @@ export const eliminarProductoPorCod = async (cod) => {
         throw new Error('Producto no encontrado')
     }
     await db.query('UPDATE producto SET activo = 0 WHERE cod = ?', [cod])
-    return await obtenerProductoPorCod(cod)
+    return productoExistente
 }
