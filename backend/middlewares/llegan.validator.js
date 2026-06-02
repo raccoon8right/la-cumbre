@@ -1,4 +1,4 @@
-import { body, validationResult } from 'express-validator'
+import { body } from 'express-validator'
 
 export const validarLlegan = [
     body('ci_fk').notEmpty().withMessage('El campo ci_fk es obligatorio'),

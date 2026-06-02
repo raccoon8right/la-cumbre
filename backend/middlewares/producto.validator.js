@@ -1,4 +1,4 @@
-import { body, validationResult } from 'express-validator'
+import { body } from 'express-validator'
 
 export const validarProducto = [
     body('cod').notEmpty().withMessage('El campo código es obligatorio'),
