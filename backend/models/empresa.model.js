@@ -11,6 +11,10 @@ export const obtenerEmpresaPorNIT = async (nit) => {
 }
 
 export const crearEmpresa = async (nit, nombre, direccion, telefono, facebook, ciudad) => {
+    const empresaExistente = await obtenerEmpresaPorNIT(nit)
+    if (empresaExistente) {
+        throw new Error('El NIT ya existe')
+    }
     await db.query(
         'INSERT INTO empresa(nit, nombre, direccion, telefono, facebook, ciudad) VALUES (?, ?, ?, ?, ?, ?)',
         [nit, nombre, direccion, telefono, facebook, ciudad]
@@ -28,7 +32,7 @@ export const modificarEmpresaPorNIT = async (nit, nombre, direccion, telefono, f
         'UPDATE empresa SET nombre = ?, direccion = ?,  telefono = ?, facebook = ?, ciudad = ? WHERE nit = ?',
         [nombre, direccion, telefono, facebook, ciudad, nit]
     )
-    return empresaExistente
+    return await obtenerEmpresaPorNIT(nit)
 }
 
 export const eliminarEmpresaPorNIT = async (nit) => {

@@ -1,4 +1,4 @@
-import { getEmpresas, getEmpresaPorNIT, postEmpresa, putEmpresaPorNIT, deleteEmpresaPorNIT } from "../controllers/empresa.controller.js";
+import { getEmpresas, getEmpresaPorNIT, postEmpresa, putEmpresaPorNIT, deleteEmpresaPorNIT } from '../controllers/empresa.controller.js'
 import express from 'express'
 
 const routes = express.Router()
