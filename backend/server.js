@@ -1,14 +1,11 @@
 import express from 'express'
 import 'dotenv/config'
-
-// importar rutas, errorhandler, token
+import empresaRoutes from './routes/empresa.routes.js'
 
 const app = express()
 app.use(express.json())
 
-// poner rutas
-
-// poner errorhandler
+app.use('/api/empresas', empresaRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
