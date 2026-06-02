@@ -8,7 +8,7 @@ const app = express()
 app.use(express.json())
 
 // poner rutas
-app.use('api/pagos', rutasPago);
+app.use('/api/pagos', rutasPago);
 // poner errorhandler
 
 const PORT = process.env.PORT || 5000
