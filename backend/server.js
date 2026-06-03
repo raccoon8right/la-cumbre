@@ -9,6 +9,10 @@ import rutasPago from './routes/pago.routes.js'
 import rutasResena from './routes/resena.routes.js'
 import rutasTransporte from './routes/transporte.routes.js'
 import rutasDetallePedido from './routes/detallePedido.routes.js'
+import rutasPersona from './routes/persona.routes.js'
+import rutasCliente from './routes/cliente.routes.js'
+import rutasCategoria from './routes/categoria.routes.js'
+import rutasAdministrador from './routes/administrador.routes.js'
 
 const app = express()
 app.use(express.json())
@@ -22,6 +26,10 @@ app.use('/api/pagos', rutasPago)
 app.use('/api/resenas', rutasResena)
 app.use('/api/transportes', rutasTransporte)
 app.use('/api/detallePedidos', rutasDetallePedido)
+app.use('/api/personas', rutasPersona)
+app.use('/api/clientes', rutasCliente)
+app.use('/api/categorias', rutasCategoria)
+app.use('/api/administradores', rutasAdministrador)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

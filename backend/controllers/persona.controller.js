@@ -1,80 +1,57 @@
-import { ObtenerPersonas, ObtenerPersonaPorCi, CrearPersona, ActualizarPersona, EliminarPersona } from '../models/persona.model.js';
+import { ObtenerPersonas, ObtenerPersonaPorCi, CrearPersona, ActualizarPersona, EliminarPersona } from '../models/persona.model.js'
 
 export const getPersonas = async (req, res) => {
     try {
-        const personas = await ObtenerPersonas();
-
+        const personas = await ObtenerPersonas()
         if (personas.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron personas' });
+            return res.status(404).json({ error: 'No se encontraron personas' })
         }
-
-        res.status(200).json(personas);
+        res.status(200).json(personas)
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
 export const getPersonaPorCi = async (req, res) => {
     try {
-        const { ci } = req.params;
-
-        const persona = await ObtenerPersonaPorCi(ci);
-
-        if (!persona)
-            return res.status(404).json({ error: 'Persona no encontrada' });
-
-        res.status(200).json(persona);
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
+        const { ci } = req.params
+        const persona = await ObtenerPersonaPorCi(ci)
+        if (!persona) {
+            return res.status(404).json({ error: 'Persona no encontrada' })
+        }
+        res.status(200).json(persona)
+    } catch (error) {
+        res.status(500).json({ error: error.message })
     }
 }
 
 export const crearPe = async (req, res) => {
     try {
-        const persona = req.body;
-
-        const id = await CrearPersona(persona);
-
-        res.status(201).json({ id });
+        const { ci, nombres, apellidos, email, password, rol } = req.body
+        const nuevaPersona = await CrearPersona(ci, nombres, apellidos, email, password, rol)
+        res.status(201).json(nuevaPersona)
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
 export const actualizarPe = async (req, res) => {
     try {
-        const { ci } = req.params;
-
-        const persona = req.body;
-
-        const personaP = await ObtenerPersonaPorCi(ci);
-
-        if (!personaP) {
-            return res.status(404).json({ error: 'Persona no encontrada' });
-        }
-
-        await ActualizarPersona(persona);
-
-        res.status(200).json({ message: 'Persona actualizada correctamente' });
+        const { ci } = req.params
+        const { nombres, apellidos, email } = req.body
+        const personaActualizada = await ActualizarPersona(ci, nombres, apellidos, email)
+        res.status(200).json(personaActualizada)
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
 export const eliminarPe = async (req, res) => {
     try {
-        const { ci } = req.params;
-
-        const persona = await ObtenerPersonaPorCi(ci);
-
-        if (!persona)
-            return res.status(404).json({ error: 'Persona no encontrada' });
-
-        await EliminarPersona({ ci });
-
-        res.status(200).json({ message: 'Persona eliminada correctamente' });
+        const { ci } = req.params
+        const personaEliminada = await EliminarPersona(ci)
+        res.status(200).json(personaEliminada)
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
