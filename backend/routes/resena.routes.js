@@ -1,14 +1,15 @@
-import { getResenas, getResenaPorId, crearR, actualizarR, eliminarR } from '../controllers/resena.controller.js';
+import { getResenas, getResenaPorId, crearR, actualizarR, eliminarR } from '../controllers/resena.controller.js'
 import { validarResena } from '../middlewares/resena.validator.js'
 import { validarCampos } from '../middlewares/validarCampos.js'
-import { Router } from 'express';
+import { verificarToken, verificarRol } from '../middlewares/auth.middleware.js'
+import { Router } from 'express'
 
-const rutasResena = Router();
+const rutasResena = Router()
 
-rutasResena.get('/', getResenas);
-rutasResena.get('/:id', getResenaPorId);
-rutasResena.post('/', validarResena, validarCampos, crearR);
-rutasResena.put('/:id', validarResena, validarCampos, actualizarR);
-rutasResena.delete('/:id', eliminarR);
+rutasResena.get('/', verificarToken, getResenas)
+rutasResena.get('/:id', verificarToken, getResenaPorId)
+rutasResena.post('/', verificarToken, crearR)
+rutasResena.put('/:id', verificarToken, validarResena, validarCampos, actualizarR)
+rutasResena.delete('/:id', verificarToken, verificarRol('administrador'), eliminarR)
 
-export default rutasResena;
+export default rutasResena
