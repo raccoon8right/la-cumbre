@@ -1,5 +1,6 @@
 import express from 'express'
 import 'dotenv/config'
+import cors from 'cors'
 import empresaRoutes from './routes/empresa.routes.js'
 import productoRoutes from './routes/producto.routes.js'
 import pedidoRoutes from './routes/pedido.routes.js'
@@ -16,6 +17,11 @@ import rutasAdministrador from './routes/administrador.routes.js'
 import authroutes from './routes/auth.routes.js'
 
 const app = express()
+app.use(cors({
+    origin: 'http://localhost:5173', // puerto de Vite
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}))
 app.use(express.json())
 
 app.use('/api/empresas', empresaRoutes)
