@@ -4,6 +4,7 @@ import { evaluarContrasenia } from '../utils/passwordStrength.js'
 import { CrearPersona, ObtenerPersonaPorEmail } from './persona.model.js'
 import { CrearCliente } from './cliente.model.js'
 import { CrearAdministrador } from './administrador.model.js'
+import { registrarLog } from './logAcceso.model.js'
 
 export const registrar = async (ci, nombres, apellidos, email, password, rol, direccion, telefono) => {
     const fortaleza = evaluarContrasenia(password)
@@ -21,15 +22,18 @@ export const registrar = async (ci, nombres, apellidos, email, password, rol, di
     return { ...nuevaPersona, nivelContrasenia: fortaleza.nivel }
 }
 
-export const login = async (email, password) => {
+export const login = async (email, password, ip, browser) => {
     const persona = await ObtenerPersonaPorEmail(email)
     if (!persona) {
+        await registrarLog(null, email, ip, 'ingreso', browser)
         throw new Error('Credenciales invalidas')
     }
     const passwordValido = await bcrypt.compare(password, persona.password)
     if (!passwordValido) {
+        await registrarLog(persona.ci, email, ip, 'ingreso', browser)
         throw new Error('Credenciales invalidas')
     }
+    await registrarLog(persona.ci, email, ip, 'ingreso', browser)
     const token = jwt.sign(
         { ci: persona.ci, rol: persona.rol },
         process.env.JWT_SECRET,
@@ -45,4 +49,8 @@ export const login = async (email, password) => {
             rol: persona.rol
         }
     }
+}
+
+export const logout = async (ci, email, ip, browser) => {
+    await registrarLog(ci, email, ip, 'salida', browser)
 }
