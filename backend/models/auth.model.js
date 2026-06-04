@@ -1,10 +1,15 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { evaluarContrasenia } from '../utils/passwordStrength.js'
 import { CrearPersona, ObtenerPersonaPorEmail } from './persona.model.js'
 import { CrearCliente } from './cliente.model.js'
 import { CrearAdministrador } from './administrador.model.js'
 
 export const registrar = async (ci, nombres, apellidos, email, password, rol, direccion, telefono) => {
+    const fortaleza = evaluarContrasenia(password)
+    if (fortaleza.nivel === 'debil') {
+        throw new Error(fortaleza.mensaje)
+    }
     const salt = await bcrypt.genSalt(10)
     const passwordHash = await bcrypt.hash(password, salt)
     const nuevaPersona = await CrearPersona(ci, nombres, apellidos, email, passwordHash, rol)
@@ -13,12 +18,12 @@ export const registrar = async (ci, nombres, apellidos, email, password, rol, di
     } else if (rol === 'administrador') {
         await CrearAdministrador(ci)
     }
-    return nuevaPersona
+    return { ...nuevaPersona, nivelContrasenia: fortaleza.nivel }
 }
 
 export const login = async (email, password) => {
-    const persona  = await ObtenerPersonaPorEmail(email)
-    if(!persona) {
+    const persona = await ObtenerPersonaPorEmail(email)
+    if (!persona) {
         throw new Error('Credenciales invalidas')
     }
     const passwordValido = await bcrypt.compare(password, persona.password)
