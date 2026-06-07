@@ -15,6 +15,7 @@ import rutasCliente from './routes/cliente.routes.js'
 import rutasCategoria from './routes/categoria.routes.js'
 import rutasAdministrador from './routes/administrador.routes.js'
 import authroutes from './routes/auth.routes.js'
+import axios from 'axios'
 
 const app = express()
 app.use(cors({
@@ -38,6 +39,14 @@ app.use('/api/clientes', rutasCliente)
 app.use('/api/categorias', rutasCategoria)
 app.use('/api/administradores', rutasAdministrador)
 app.use('/api/auth', authroutes)
+app.get('/api/minerales', async (req, res) => {
+    try {
+        const response = await axios.get('https://api.metals.dev/v1/latest?api_key=demo&currency=USD&unit=troy_oz')
+        res.json(response.data)
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener minerales' })
+    }
+})
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

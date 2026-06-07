@@ -6,8 +6,8 @@ import express from 'express'
 
 const routes = express.Router()
 
-routes.get('/', verificarToken, getProductos)
-routes.get('/:cod', verificarToken, getProductoPorCod)
+routes.get('/', getProductos)
+routes.get('/:cod', getProductoPorCod)
 routes.post('/', verificarToken, verificarRol('administrador'), validarProducto, validarCampos, postProducto)
 routes.put('/:cod', verificarToken, verificarRol('administrador'), validarProducto, validarCampos, putProductoPorCod)
 routes.delete('/:cod', verificarToken, verificarRol('administrador'), deleteProductoPorCod)

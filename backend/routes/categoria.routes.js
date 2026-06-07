@@ -6,8 +6,8 @@ import { Router } from 'express';
 
 const rutasCategoria = Router();
 
-rutasCategoria.get('/', verificarToken, getCategorias)
-rutasCategoria.get('/:id', verificarToken, getCategoriaPorId)
+rutasCategoria.get('/', getCategorias)
+rutasCategoria.get('/:id', getCategoriaPorId)
 rutasCategoria.post('/', verificarToken, verificarRol('administrador'), validarCategoria, validarCampos, crearCa)
 rutasCategoria.put('/:id', verificarToken, verificarRol('administrador'), validarCategoria, validarCampos, actualizarCa)
 rutasCategoria.delete('/:id', verificarToken, verificarRol('administrador'), eliminarCa)
