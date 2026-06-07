@@ -1,0 +1,20 @@
+:root {
+    --color-principal: #0F3B7A;
+    --color-fondo: #F3EFE6;
+    --color-blanco: #FFFFFF;
+    --color-texto: #333333;
+    --color-error: #dc3545;
+    --color-exito: #28a745;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--color-fondo);
+    color: var(--color-principal);
+    font-family: Arial, sans-serif;
+}
