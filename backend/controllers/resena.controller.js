@@ -1,6 +1,5 @@
 import {ObtenerResenas, ObtenerResenaPorId, CrearResena, ActualizarResena, EliminarResena} from '../models/resena.model.js'
 
-console.log("SE ESTA CARGANDO RESENA.CONTROLLER");
 export const getResenas = async(req, res)=>{
     try {
         const resenas = await ObtenerResenas();

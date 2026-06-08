@@ -1,46 +1,51 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReCAPTCHA from 'react-google-recaptcha'
-import axios from 'axios'
 import { useAuth } from '../context/AuthContext.jsx'
+import api from '../services/api.js'
 
 function Login() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const [cargando, setCargando] = useState(false)
     const captchaRef = useRef(null)
     const { guardarSesion } = useAuth()
     const navigate = useNavigate()
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setError('')
+
         const captchaToken = captchaRef.current.getValue()
-        if (!captchaToken) {
-            setError('Por favor completa el CAPTCHA')
-            return
-        }
+        if (!captchaToken) return setError('Por favor completa el CAPTCHA')
+
+        setCargando(true)
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
-                email, password, captchaToken
-            })
+            const response = await api.post('/auth/login', { email, password, captchaToken })
             guardarSesion(response.data.token, response.data.usuario)
             navigate('/dashboard')
         } catch (error) {
             setError(error.response?.data?.error || 'Error al iniciar sesión')
+            captchaRef.current.reset()
+        } finally {
+            setCargando(false)
         }
     }
 
     return (
-        <>
-            <h1>Iniciar sesión</h1>
-            {error && <p>{error}</p>}
+        <div className='login-page'>
             <form onSubmit={handleSubmit}>
-                <input type='email' placeholder='Email...' value={email} onChange={(e) => setEmail(e.target.value)} />
-                <input type='password' placeholder='Contraseña...' value={password} onChange={(e) => setPassword(e.target.value)} />
+                <h1>Iniciar sesión</h1>
+                {error && <p className='error-mensaje'>{error}</p>}
+                <input type='email' placeholder='Email...' value={email} onChange={(e) => setEmail(e.target.value)} disabled={cargando} />
+                <input type='password' placeholder='Contraseña...' value={password} onChange={(e) => setPassword(e.target.value)} disabled={cargando} />
                 <ReCAPTCHA sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY} ref={captchaRef} />
-                <button type='submit'>Iniciar sesión</button>
+                <button type='submit' className='btn-principal' disabled={cargando}>
+                    {cargando ? 'Ingresando...' : 'Iniciar sesión'}
+                </button>
             </form>
-        </>
+        </div>
     )
 }
 

@@ -1,41 +1,94 @@
+/**
+ * src/pages/MisPedidos.jsx
+ *
+ * Correcciones:
+ * 1. Bug crítico: antes traía TODOS los pedidos (misma llamada que el admin)
+ *    Ahora filtra por usuario.ci en el frontend mientras el backend
+ *    no tenga un endpoint /pedidos/mis-pedidos o /pedidos?cliente=ci
+ *
+ *    NOTA: Lo ideal es que el backend filtre por el JWT directamente.
+ *    Cuando el backend lo soporte, solo cambiar api.get('/pedidos/mis-pedidos')
+ *    y quitar el .filter() de aquí.
+ *
+ * 2. Usa api.js centralizado
+ * 3. useAuth para leer usuario.ci
+ * 4. Estado vacío con link a productos
+ */
+
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { formatPrecio } from '../utils/formatPrecio.js'
+import api from '../services/api.js'
+
+// Etiquetas de color por estado
+const ESTADO_CLASS = {
+    pendiente:  'badge-pendiente',
+    enviado:    'badge-enviado',
+    entregado:  'badge-entregado',
+    cancelado:  'badge-cancelado',
+}
 
 function MisPedidos() {
     const [pedidos, setPedidos] = useState([])
-    const { token } = useAuth()
+    const [cargando, setCargando] = useState(true)
+    const [error, setError] = useState('')
+    const { usuario } = useAuth()
 
     useEffect(() => {
+        if (!usuario?.ci) return
+
         const fetchPedidos = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/pedidos`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-                setPedidos(res.data)
-            } catch (error) {
-                console.log(error)
+                const res = await api.get('/pedidos')
+                const todos = Array.isArray(res.data) ? res.data : []
+
+                // Filtrar solo los pedidos del cliente autenticado
+                // Cuando el backend filtre por JWT, eliminar este .filter()
+                const misPedidos = todos.filter(p => p.cliente_ci_fk === usuario.ci)
+
+                // Ordenar del más reciente al más antiguo
+                misPedidos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+
+                setPedidos(misPedidos)
+            } catch {
+                setError('No se pudieron cargar tus pedidos')
+            } finally {
+                setCargando(false)
             }
         }
+
         fetchPedidos()
-    }, [token])
+    }, [usuario])
 
     return (
         <div className='mis-pedidos'>
             <h1>Mis pedidos</h1>
-            {pedidos.length === 0 ? (
-                <p>No tienes pedidos aún</p>
+
+            {cargando ? (
+                <p>Cargando pedidos...</p>
+            ) : error ? (
+                <p className='error-mensaje'>{error}</p>
+            ) : pedidos.length === 0 ? (
+                <div className='pedidos-vacio'>
+                    <p>No tienes pedidos aún</p>
+                    <Link to='/productos' className='btn-principal'>Explorar productos</Link>
+                </div>
             ) : (
                 <div className='pedidos-lista'>
                     {pedidos.map(pedido => (
                         <div key={pedido.cod} className='pedido-card'>
                             <div className='pedido-header'>
                                 <h3>Pedido #{pedido.cod}</h3>
-                                <span className={`estado estado-${pedido.estado}`}>{pedido.estado}</span>
+                                <span className={`badge ${ESTADO_CLASS[pedido.estado] || ''}`}>
+                                    {pedido.estado}
+                                </span>
                             </div>
-                            <p>Dirección: {pedido.direccion_entrega}</p>
-                            <p>Total: Bs. {pedido.total}</p>
-                            <small>{new Date(pedido.fecha).toLocaleDateString()}</small>
+                            <p><strong>Dirección:</strong> {pedido.direccion_entrega}</p>
+                            <p><strong>Total:</strong> Bs. {formatPrecio(pedido.total)}</p>
+                            <small>{new Date(pedido.fecha).toLocaleDateString('es-BO', {
+                                year: 'numeric', month: 'long', day: 'numeric'
+                            })}</small>
                         </div>
                     ))}
                 </div>

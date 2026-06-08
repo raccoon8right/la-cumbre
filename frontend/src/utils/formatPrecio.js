@@ -1,0 +1,1 @@
+export const formatPrecio = (valor) => Number(valor).toFixed(2)

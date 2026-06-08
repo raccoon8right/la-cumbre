@@ -1,7 +1,5 @@
 import {ObtenerTransportes, ObtenerTransportePorId, CrearTransporte, ActualizarTransporte, EliminarTransporte} from '../models/trasporte.model.js';
 
-console.log("SE ESTA CARGANDO TRANSPORTE.CONTROLLER");
-
 export const getTransportes = async(req, res)=>{
     try {
         const transportes = await ObtenerTransportes();

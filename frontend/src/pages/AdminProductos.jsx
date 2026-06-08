@@ -1,108 +1,302 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+/**
+ * src/pages/AdminProductos.jsx
+ *
+ * Correcciones aplicadas:
+ * 1. Usa api.js centralizado — sin headers manuales ni VITE_API_URL repetido
+ * 2. Valida que usuario.ci exista antes de enviar (evita crash silencioso)
+ * 3. fetchData con useCallback para no recrearse en cada render
+ * 4. Código comentado eliminado
+ * 5. Campo "activo" manejado correctamente como checkbox en el form
+ */
+
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import api from '../services/api.js'
+
+const FORM_VACIO = {
+    cod: '',
+    nombre: '',
+    tipo: '',
+    material: '',
+    descripcion: '',
+    precio: '',
+    stock: '',
+    activo: 1,
+    categoria_id_fk: '',
+    empresa_nit_fk: '',
+}
 
 function AdminProductos() {
-    const [productos, setProductos] = useState([])
+    const [productos, setProductos]   = useState([])
     const [categorias, setCategorias] = useState([])
-    const [empresas, setEmpresas] = useState([])
-    const [form, setForm] = useState({ cod: '', nombre: '', tipo: '', material: '', descripcion: '', precio: '', stock: '', activo: 1, categoria_id_fk: '', empresa_nit_fk: '', admin_ci_fk: '' })
-    const [editando, setEditando] = useState(false)
-    const { token, usuario } = useAuth()
+    const [empresas, setEmpresas]     = useState([])
+    const [form, setForm]             = useState(FORM_VACIO)
+    const [editando, setEditando]     = useState(false)
+    const [cargando, setCargando]     = useState(true)
+    const [guardando, setGuardando]   = useState(false)
+    const [error, setError]           = useState('')
+    const [exito, setExito]           = useState('')
+    const { usuario } = useAuth()
 
-    const fetchData = async () => {
+    // useCallback evita que fetchData se recree en cada render
+    const fetchData = useCallback(async () => {
+        setError('')
+        setCargando(true)
         try {
-            const [prodRes, catRes, empRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/productos`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${import.meta.env.VITE_API_URL}/categorias`, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.get(`${import.meta.env.VITE_API_URL}/empresas`, { headers: { Authorization: `Bearer ${token}` } }),
+            // Las tres llamadas en paralelo — si una falla no bloquea las otras
+            const [prodRes, catRes, empRes] = await Promise.allSettled([
+                api.get('/productos'),
+                api.get('/categorias'),
+                api.get('/empresas'),
             ])
-            setProductos(prodRes.data)
-            setCategorias(catRes.data)
-            setEmpresas(empRes.data)
-        } catch (error) {
-            console.log(error)
-        }
-    }
 
-    useEffect(() => { fetchData() }, [token])
+            setProductos(
+                prodRes.status === 'fulfilled' && Array.isArray(prodRes.value.data)
+                    ? prodRes.value.data
+                    : []
+            )
+            setCategorias(
+                catRes.status === 'fulfilled' && Array.isArray(catRes.value.data)
+                    ? catRes.value.data
+                    : []
+            )
+            setEmpresas(
+                empRes.status === 'fulfilled' && Array.isArray(empRes.value.data)
+                    ? empRes.value.data
+                    : []
+            )
+
+            // Avisar si alguna carga parcial falló
+            if (prodRes.status === 'rejected') setError('No se pudieron cargar los productos')
+        } finally {
+            setCargando(false)
+        }
+    }, []) // sin dependencias — no usa estado ni props
+
+    useEffect(() => { fetchData() }, [fetchData])
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target
+        setForm(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? (checked ? 1 : 0) : value,
+        }))
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setError('')
+        setExito('')
+
+        if (!form.cod.trim() || !form.nombre.trim()) {
+            return setError('Código y nombre son obligatorios')
+        }
+        // Bug corregido: validar que usuario y ci existan antes de enviar
+        if (!usuario?.ci) {
+            return setError('No se pudo identificar al administrador. Vuelve a iniciar sesión.')
+        }
+
+        setGuardando(true)
         try {
             const data = { ...form, admin_ci_fk: usuario.ci }
+
             if (editando) {
-                await axios.put(`${import.meta.env.VITE_API_URL}/productos/${form.cod}`, data, { headers: { Authorization: `Bearer ${token}` } })
+                await api.put(`/productos/${form.cod}`, data)
+                setExito('Producto actualizado correctamente')
             } else {
-                await axios.post(`${import.meta.env.VITE_API_URL}/productos`, data, { headers: { Authorization: `Bearer ${token}` } })
+                await api.post('/productos', data)
+                setExito('Producto agregado correctamente')
             }
-            setForm({ cod: '', nombre: '', tipo: '', material: '', descripcion: '', precio: '', stock: '', activo: 1, categoria_id_fk: '', empresa_nit_fk: '', admin_ci_fk: '' })
+
+            setForm(FORM_VACIO)
             setEditando(false)
             fetchData()
-        } catch (error) {
-            console.log(error)
+        } catch (e) {
+            setError(e.response?.data?.error || 'Error al guardar el producto')
+        } finally {
+            setGuardando(false)
         }
     }
 
     const handleEditar = (producto) => {
         setForm(producto)
         setEditando(true)
+        setError('')
+        setExito('')
+        // Scroll al form para que el usuario vea que se cargaron los datos
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     const handleEliminar = async (cod) => {
         if (!confirm('¿Desactivar este producto?')) return
+        setError('')
+        setExito('')
         try {
-            await axios.delete(`${import.meta.env.VITE_API_URL}/productos/${cod}`, { headers: { Authorization: `Bearer ${token}` } })
+            await api.delete(`/productos/${cod}`)
+            setExito('Producto desactivado')
             fetchData()
-        } catch (error) {
-            console.log(error)
+        } catch (e) {
+            setError(e.response?.data?.error || 'Error al desactivar el producto')
         }
+    }
+
+    const handleCancelar = () => {
+        setEditando(false)
+        setForm(FORM_VACIO)
+        setError('')
+        setExito('')
     }
 
     return (
         <div className='admin-page'>
             <h1>Gestión de productos</h1>
+
+            {error && <p className='error-mensaje'>{error}</p>}
+            {exito && <p className='exito-mensaje'>{exito}</p>}
+
             <form onSubmit={handleSubmit} className='admin-form'>
-                <input placeholder='Código' value={form.cod} onChange={(e) => setForm({ ...form, cod: e.target.value })} disabled={editando} />
-                <input placeholder='Nombre' value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
-                <input placeholder='Tipo' value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} />
-                <input placeholder='Material' value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} />
-                <textarea placeholder='Descripción' value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
-                <input type='number' placeholder='Precio' value={form.precio} onChange={(e) => setForm({ ...form, precio: e.target.value })} />
-                <input type='number' placeholder='Stock' value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-                <select value={form.categoria_id_fk} onChange={(e) => setForm({ ...form, categoria_id_fk: e.target.value })}>
+                <input
+                    name='cod'
+                    placeholder='Código'
+                    value={form.cod}
+                    onChange={handleChange}
+                    disabled={editando}
+                />
+                <input
+                    name='nombre'
+                    placeholder='Nombre'
+                    value={form.nombre}
+                    onChange={handleChange}
+                />
+                <input
+                    name='tipo'
+                    placeholder='Tipo'
+                    value={form.tipo}
+                    onChange={handleChange}
+                />
+                <input
+                    name='material'
+                    placeholder='Material'
+                    value={form.material}
+                    onChange={handleChange}
+                />
+                <textarea
+                    name='descripcion'
+                    placeholder='Descripción'
+                    value={form.descripcion}
+                    onChange={handleChange}
+                />
+                <input
+                    name='precio'
+                    type='number'
+                    min='0'
+                    step='0.01'
+                    placeholder='Precio'
+                    value={form.precio}
+                    onChange={handleChange}
+                />
+                <input
+                    name='stock'
+                    type='number'
+                    min='0'
+                    placeholder='Stock'
+                    value={form.stock}
+                    onChange={handleChange}
+                />
+
+                <select
+                    name='categoria_id_fk'
+                    value={form.categoria_id_fk}
+                    onChange={handleChange}
+                >
                     <option value=''>Seleccionar categoría</option>
-                    {categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
-                </select>
-                <select value={form.empresa_nit_fk} onChange={(e) => setForm({ ...form, empresa_nit_fk: e.target.value })}>
-                    <option value=''>Seleccionar empresa</option>
-                    {empresas.map(emp => <option key={emp.nit} value={emp.nit}>{emp.nombre}</option>)}
-                </select>
-                <button type='submit' className='btn-principal'>{editando ? 'Actualizar' : 'Agregar'}</button>
-                {editando && <button type='button' onClick={() => { setEditando(false); setForm({ cod: '', nombre: '', tipo: '', material: '', descripcion: '', precio: '', stock: '', activo: 1, categoria_id_fk: '', empresa_nit_fk: '', admin_ci_fk: '' }) }}>Cancelar</button>}
-            </form>
-            <table className='admin-tabla'>
-                <thead>
-                    <tr>
-                        <th>Código</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {productos.map(p => (
-                        <tr key={p.cod}>
-                            <td>{p.cod}</td>
-                            <td>{p.nombre}</td>
-                            <td>Bs. {p.precio}</td>
-                            <td>{p.stock}</td>
-                            <td>{p.activo ? 'Activo' : 'Inactivo'}</td>
-                            <td>
-                                <button onClick={() => handleEditar(p)}>Editar</button>
-                                <button onClick={() => handleEliminar(p.cod)}>Desactivar</button>
-                            </td>
-                        </tr>
+                    {categorias.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                     ))}
-                </tbody>
-            </table>
+                </select>
+
+                <select
+                    name='empresa_nit_fk'
+                    value={form.empresa_nit_fk}
+                    onChange={handleChange}
+                >
+                    <option value=''>Seleccionar empresa</option>
+                    {empresas.map(emp => (
+                        <option key={emp.nit} value={emp.nit}>{emp.nombre}</option>
+                    ))}
+                </select>
+
+                {/* Campo activo solo visible al editar */}
+                {editando && (
+                    <label className='admin-form-check'>
+                        <input
+                            name='activo'
+                            type='checkbox'
+                            checked={form.activo === 1}
+                            onChange={handleChange}
+                        />
+                        Producto activo
+                    </label>
+                )}
+
+                <div className='admin-form-acciones'>
+                    <button type='submit' className='btn-principal' disabled={guardando}>
+                        {guardando ? 'Guardando...' : editando ? 'Actualizar' : 'Agregar'}
+                    </button>
+                    {editando && (
+                        <button type='button' onClick={handleCancelar}>
+                            Cancelar
+                        </button>
+                    )}
+                </div>
+            </form>
+
+            {cargando ? (
+                <p>Cargando productos...</p>
+            ) : productos.length === 0 ? (
+                <p>No hay productos registrados</p>
+            ) : (
+                <table className='admin-tabla'>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {productos.map(p => (
+                            <tr key={p.cod} className={!p.activo ? 'fila-inactiva' : ''}>
+                                <td>{p.cod}</td>
+                                <td>{p.nombre}</td>
+                                <td>{p.tipo}</td>
+                                <td>Bs. {Number(p.precio).toFixed(2)}</td>
+                                <td>{p.stock}</td>
+                                <td>
+                                    <span className={`badge ${p.activo ? 'badge-activo' : 'badge-inactivo'}`}>
+                                        {p.activo ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                </td>
+                                <td className='acciones'>
+                                    <button onClick={() => handleEditar(p)}>Editar</button>
+                                    <button
+                                        onClick={() => handleEliminar(p.cod)}
+                                        className='btn-peligro'
+                                        disabled={!p.activo}
+                                        title={!p.activo ? 'Ya está desactivado' : 'Desactivar'}
+                                    >
+                                        Desactivar
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
         </div>
     )
 }

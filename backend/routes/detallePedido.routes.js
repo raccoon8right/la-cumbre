@@ -8,7 +8,7 @@ const rutasDetallePedido = Router()
 
 rutasDetallePedido.get('/', verificarToken, getDetallePedidos)
 rutasDetallePedido.get('/:id', verificarToken, getDetallePedidoPorId)
-rutasDetallePedido.post('/', verificarToken, verificarRol('administrador'), validarDetallePedido, validarCampos, crearD)
+rutasDetallePedido.post('/', verificarToken, validarDetallePedido, validarCampos, crearD)
 rutasDetallePedido.put('/:id', verificarToken, verificarRol('administrador'), validarDetallePedido, validarCampos, actualizarD)
 rutasDetallePedido.delete('/:id', verificarToken, verificarRol('administrador'), eliminarD)
 

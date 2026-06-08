@@ -1,113 +1,155 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import { useAuth } from '../context/AuthContext.jsx'
+/**
+ * src/pages/AdminDashboard.jsx
+ *
+ * Correcciones:
+ * 1. Usa api.js centralizado
+ * 2. Endpoint de clientes corregido: /clientes (no /administradores)
+ * 3. Promise.allSettled — si una estadística falla, las demás igual se muestran
+ * 4. useCallback en fetchStats
+ */
+
+import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { generarReportePedidos, generarReporteProductos } from '../utils/generarReporte.js'
+import api from '../services/api.js'
+
+const COLORES = ['#0F3B7A', '#B8A060', '#1A55A8', '#C8B87A']
 
 function AdminDashboard() {
     const [stats, setStats] = useState({ productos: 0, pedidos: 0, clientes: 0, empresas: 0 })
     const [pedidosPorEstado, setPedidosPorEstado] = useState([])
-    const { token } = useAuth()
-
     const [pedidos, setPedidos] = useState([])
     const [productos, setProductos] = useState([])
-    
-    const handleReportePedidos = () => generarReportePedidos(pedidos)
-    const handleReporteProductos = () => generarReporteProductos(productos)
+    const [cargando, setCargando] = useState(true)
+    const [error, setError] = useState('')
 
-    const COLORES = ['#0F3B7A', '#B8A060', '#1A55A8', '#C8B87A']
+    const fetchStats = useCallback(async () => {
+        setError('')
+        try {
+            // allSettled: si una falla, las demás igual llegan
+            const [prodRes, pedRes, cliRes, empRes] = await Promise.allSettled([
+                api.get('/productos'),
+                api.get('/pedidos'),
+                api.get('/clientes'),   // ruta correcta del backend
+                api.get('/empresas'),
+            ])
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const [prodRes, pedRes, cliRes, empRes] = await Promise.all([
-                    axios.get(`${import.meta.env.VITE_API_URL}/productos`, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(`${import.meta.env.VITE_API_URL}/pedidos`, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(`${import.meta.env.VITE_API_URL}/clientes`, { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get(`${import.meta.env.VITE_API_URL}/empresas`, { headers: { Authorization: `Bearer ${token}` } }),
-                ])
-                setStats({
-                    productos: prodRes.data.length,
-                    pedidos: pedRes.data.length,
-                    clientes: cliRes.data.length,
-                    empresas: empRes.data.length
-                })
-                const estados = pedRes.data.reduce((acc, p) => {
+            const prod = prodRes.status === 'fulfilled' ? prodRes.value.data : []
+            const ped  = pedRes.status  === 'fulfilled' ? pedRes.value.data  : []
+            const cli  = cliRes.status  === 'fulfilled' ? cliRes.value.data  : []
+            const emp  = empRes.status  === 'fulfilled' ? empRes.value.data  : []
+
+            setStats({
+                productos: Array.isArray(prod) ? prod.length : 0,
+                pedidos:   Array.isArray(ped)  ? ped.length  : 0,
+                clientes:  Array.isArray(cli)  ? cli.length  : 0,
+                empresas:  Array.isArray(emp)  ? emp.length  : 0,
+            })
+
+            if (Array.isArray(ped)) {
+                const estados = ped.reduce((acc, p) => {
                     acc[p.estado] = (acc[p.estado] || 0) + 1
                     return acc
                 }, {})
                 setPedidosPorEstado(Object.entries(estados).map(([name, value]) => ({ name, value })))
-                {/* Pruebas */ }
-                setProductos(prodRes.data)
-                setPedidos(pedRes.data)
-            } catch (error) {
-                console.log(error)
+                setPedidos(ped)
             }
+
+            if (Array.isArray(prod)) setProductos(prod)
+
+            // Avisar si alguna carga falló parcialmente
+            const fallidos = [prodRes, pedRes, cliRes, empRes].filter(r => r.status === 'rejected')
+            if (fallidos.length > 0) setError('Algunas estadísticas no pudieron cargarse')
+
+        } catch {
+            setError('No se pudieron cargar las estadísticas')
+        } finally {
+            setCargando(false)
         }
-        fetchStats()
-    }, [token])
+    }, [])
+
+    useEffect(() => { fetchStats() }, [fetchStats])
 
     return (
         <div className='admin-dashboard'>
             <h1>Dashboard</h1>
-            <div className='stats-grid'>
-                <div className='stat-card'>
-                    <h3>Productos</h3>
-                    <span>{stats.productos}</span>
-                </div>
-                <div className='stat-card'>
-                    <h3>Pedidos</h3>
-                    <span>{stats.pedidos}</span>
-                </div>
-                <div className='stat-card'>
-                    <h3>Clientes</h3>
-                    <span>{stats.clientes}</span>
-                </div>
-                <div className='stat-card'>
-                    <h3>Empresas</h3>
-                    <span>{stats.empresas}</span>
-                </div>
-            </div>
-            <div className='graficos'>
-                <div className='grafico-card'>
-                    <h3>Pedidos por estado</h3>
-                    <ResponsiveContainer width='100%' height={300}>
-                        <PieChart>
-                            <Pie data={pedidosPorEstado} dataKey='value' nameKey='name' cx='50%' cy='50%' outerRadius={100} label>
-                                {pedidosPorEstado.map((_, i) => (
-                                    <Cell key={i} fill={COLORES[i % COLORES.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className='grafico-card'>
-                    <h3>Resumen general</h3>
-                    <ResponsiveContainer width='100%' height={300}>
-                        <BarChart data={[
-                            { name: 'Productos', valor: stats.productos },
-                            { name: 'Pedidos', valor: stats.pedidos },
-                            { name: 'Clientes', valor: stats.clientes },
-                            { name: 'Empresas', valor: stats.empresas },
-                        ]}>
-                            <XAxis dataKey='name' />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey='valor' fill='#0F3B7A' />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-            <div className='reportes'>
-                <h2>Reportes PDF</h2>
-                <button onClick={handleReportePedidos} className='btn-principal'>
-                    Descargar reporte de pedidos
-                </button>
-                <button onClick={handleReporteProductos} className='btn-principal'>
-                    Descargar reporte de productos
-                </button>
-            </div>
+
+            {error && <p className='error-mensaje'>{error}</p>}
+
+            {cargando ? (
+                <p>Cargando estadísticas...</p>
+            ) : (
+                <>
+                    <div className='stats-grid'>
+                        <div className='stat-card'><h3>Productos</h3><span>{stats.productos}</span></div>
+                        <div className='stat-card'><h3>Pedidos</h3><span>{stats.pedidos}</span></div>
+                        <div className='stat-card'><h3>Clientes</h3><span>{stats.clientes}</span></div>
+                        <div className='stat-card'><h3>Empresas</h3><span>{stats.empresas}</span></div>
+                    </div>
+
+                    <div className='graficos'>
+                        <div className='grafico-card'>
+                            <h3>Pedidos por estado</h3>
+                            {pedidosPorEstado.length === 0 ? (
+                                <p>Sin datos de pedidos</p>
+                            ) : (
+                                <ResponsiveContainer width='100%' height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={pedidosPorEstado}
+                                            dataKey='value'
+                                            nameKey='name'
+                                            cx='50%' cy='50%'
+                                            outerRadius={100}
+                                            label
+                                        >
+                                            {pedidosPorEstado.map((_, i) => (
+                                                <Cell key={i} fill={COLORES[i % COLORES.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+
+                        <div className='grafico-card'>
+                            <h3>Resumen general</h3>
+                            <ResponsiveContainer width='100%' height={300}>
+                                <BarChart data={[
+                                    { name: 'Productos', valor: stats.productos },
+                                    { name: 'Pedidos',   valor: stats.pedidos },
+                                    { name: 'Clientes',  valor: stats.clientes },
+                                    { name: 'Empresas',  valor: stats.empresas },
+                                ]}>
+                                    <XAxis dataKey='name' />
+                                    <YAxis allowDecimals={false} />
+                                    <Tooltip />
+                                    <Bar dataKey='valor' fill='#0F3B7A' />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className='reportes'>
+                        <h2>Reportes PDF</h2>
+                        <button
+                            onClick={() => generarReportePedidos(pedidos)}
+                            className='btn-principal'
+                            disabled={pedidos.length === 0}
+                        >
+                            Descargar reporte de pedidos
+                        </button>
+                        <button
+                            onClick={() => generarReporteProductos(productos)}
+                            className='btn-principal'
+                            disabled={productos.length === 0}
+                        >
+                            Descargar reporte de productos
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

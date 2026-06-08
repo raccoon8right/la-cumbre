@@ -8,7 +8,7 @@ const routes = express.Router()
 
 routes.get('/', verificarToken, getPedido)
 routes.get('/:cod', verificarToken, getPedidoPorCod)
-routes.post('/', verificarToken, verificarRol('administrador'), validarPedido, validarCampos, postPedido)
+routes.post('/', verificarToken, validarPedido, validarCampos, postPedido)
 routes.put('/:cod', verificarToken, verificarRol('administrador'), validarPedido, validarCampos, putPedidoPorCod)
 routes.delete('/:cod', verificarToken, verificarRol('administrador'), deletePedidoPorCod)
 

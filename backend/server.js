@@ -41,12 +41,32 @@ app.use('/api/administradores', rutasAdministrador)
 app.use('/api/auth', authroutes)
 app.get('/api/minerales', async (req, res) => {
     try {
-        const response = await axios.get('https://api.metals.dev/v1/latest?api_key=demo&currency=USD&unit=troy_oz')
-        res.json(response.data)
+        const response = await axios.get('https://api.metals.live/v1/spot/commodities', { timeout: 5000 });
+        const MINERALES = { tin: 'Estaño', copper: 'Cobre' };
+        const lista = response.data
+            .filter(item => MINERALES[item.metal])
+            .map(item => ({
+                metal: MINERALES[item.metal],
+                price: item.price,
+                unidad: 'USD/lb'
+            }));
+        lista.push({
+            metal: 'Antimonio',
+            price: null,
+            unidad: 'No disponible',
+            nota: 'Precio referencial: ~$38,000/t (2024)'
+        });
+        res.json(lista);
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener minerales' })
+        console.error('Error al obtener precios de minerales:', error.message);
+        // Fallback: devolver datos estáticos para que el frontend no rompa
+        res.status(200).json([
+            { metal: 'Cobre', price: 4.20, unidad: 'USD/lb', nota: 'Precio estimado (fallback)' },
+            { metal: 'Estaño', price: 28.50, unidad: 'USD/lb', nota: 'Precio estimado (fallback)' },
+            { metal: 'Antimonio', price: null, unidad: 'No disponible', nota: 'Precio referencial: ~$38,000/t (2024)' }
+        ]);
     }
-})
+});
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
