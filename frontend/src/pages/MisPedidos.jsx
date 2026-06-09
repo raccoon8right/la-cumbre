@@ -23,10 +23,10 @@ import api from '../services/api.js'
 
 // Etiquetas de color por estado
 const ESTADO_CLASS = {
-    pendiente:  'badge-pendiente',
-    enviado:    'badge-enviado',
-    entregado:  'badge-entregado',
-    cancelado:  'badge-cancelado',
+    pendiente: 'badge-pendiente',
+    enviado: 'badge-enviado',
+    entregado: 'badge-entregado',
+    cancelado: 'badge-cancelado',
 }
 
 function MisPedidos() {
@@ -40,17 +40,9 @@ function MisPedidos() {
 
         const fetchPedidos = async () => {
             try {
-                const res = await api.get('/pedidos')
-                const todos = Array.isArray(res.data) ? res.data : []
-
-                // Filtrar solo los pedidos del cliente autenticado
-                // Cuando el backend filtre por JWT, eliminar este .filter()
-                const misPedidos = todos.filter(p => p.cliente_ci_fk === usuario.ci)
-
-                // Ordenar del más reciente al más antiguo
-                misPedidos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-
-                setPedidos(misPedidos)
+                const res = await api.get(`/pedidos/cliente/${usuario.ci}`)
+                const pedidos = Array.isArray(res.data) ? res.data : []
+                setPedidos(pedidos) // ya no necesitas el .filter()
             } catch {
                 setError('No se pudieron cargar tus pedidos')
             } finally {

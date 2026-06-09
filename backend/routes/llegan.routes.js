@@ -8,7 +8,7 @@ const routes = express.Router()
 
 routes.get('/', verificarToken, getLlegan)
 routes.get('/:ci_fk/:cod_pedido_fk/:id_transporte_fk', verificarToken, getLleganPorClaves)
-routes.post('/', verificarToken, verificarRol('administrador'), validarLlegan, validarCampos, postLlegan)
+routes.post('/', verificarToken, validarLlegan, validarCampos, postLlegan)
 routes.delete('/:ci_fk/:cod_pedido_fk/:id_transporte_fk', verificarToken, verificarRol('administrador'), deleteLlegan)
 
 export default routes

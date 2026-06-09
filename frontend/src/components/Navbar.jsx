@@ -8,6 +8,7 @@ const LINKS_CLIENTE = [
     { to: '/productos', label: 'Productos' },
     { to: '/carrito', label: 'Carrito' },
     { to: '/mis-pedidos', label: 'Mis pedidos' },
+    { to: '/contactanos', label: 'Contactanos'},
 ]
 
 // Links para el panel admin — sidebar/topbar separado
@@ -17,6 +18,7 @@ const LINKS_ADMIN = [
     { to: '/admin/categorias', label: 'Categorías' },
     { to: '/admin/empresas', label: 'Empresas' },
     { to: '/admin/pedidos', label: 'Pedidos' },
+    { to: '/admin/trasnportes', label: 'Transportes'},
     { to: '/admin/minerales', label: 'Minerales' },
 ]
 

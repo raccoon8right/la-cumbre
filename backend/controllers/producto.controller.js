@@ -3,9 +3,6 @@ import { obtenerProductos, obtenerProductoPorCod, crearProducto, modificarProduc
 export const getProductos = async (req, res) => {
     try {
         const productos = await obtenerProductos()
-        if (productos.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron productos' })
-        }
         res.status(200).json(productos)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener los productos' })

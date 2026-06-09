@@ -5,6 +5,14 @@ export const obtenerPedidos = async () => {
     return result
 }
 
+export const obtenerPedidosPorCliente = async (ci_fk) => {
+    const [result] = await db.query(
+        `SELECT p.* FROM pedido p JOIN llegan l ON p.cod = l.cod_pedido_fk WHERE l.ci_fk = ? ORDER BY p.fecha DESC`,
+        [ci_fk]
+    )
+    return result
+}
+
 export const obtenerPedidoPorCod = async (cod) => {
     const [result] = await db.query('SELECT * FROM pedido WHERE cod = ?', [cod])
     return result[0]

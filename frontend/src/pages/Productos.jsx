@@ -78,7 +78,12 @@ function Productos() {
                         ) : (
                             productosFiltrados.map(producto => (
                                 <Link to={`/productos/${producto.cod}`} key={producto.cod} className='producto-card'>
-                                    <div className='producto-imagen'>{/* imagen */}</div>
+                                    <div className='producto-imagen'>
+                                        {producto.imagen_url
+                                            ? <img src={producto.imagen_url} alt={producto.nombre} />
+                                            : <div className='imagen-placeholder' />
+                                        }
+                                    </div>
                                     <div className='producto-card-info'>
                                         <h3>{producto.nombre}</h3>
                                         <p>{producto.tipo}</p>

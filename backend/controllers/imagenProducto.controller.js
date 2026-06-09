@@ -3,9 +3,6 @@ import { obtenerImagen, obtenerImagenPorID, obtenerImagenPorProducto, crearImage
 export const getImagen = async (req, res) => {
     try {
         const imagenes = await obtenerImagen()
-        if (imagenes.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron imagenes' })
-        }
         res.status(200).json(imagenes)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener las imagenes' })
@@ -29,9 +26,7 @@ export const getImagenPorProducto = async (req, res) => {
     try {
         const { producto_cod_fk } = req.params
         const imagen = await obtenerImagenPorProducto(producto_cod_fk)
-        if (imagen.length === 0) {
-            return res.status(404).json({ error: 'Imagen no encontrada' })
-        }
+
         res.status(200).json(imagen)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener la imagen' })

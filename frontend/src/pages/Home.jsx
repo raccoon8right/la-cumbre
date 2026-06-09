@@ -53,7 +53,7 @@ function Home() {
     }, [])
 
     const siguiente = () => setProductoActivo(prev => (prev + 1) % productos.length)
-    const anterior  = () => setProductoActivo(prev => (prev - 1 + productos.length) % productos.length)
+    const anterior = () => setProductoActivo(prev => (prev - 1 + productos.length) % productos.length)
 
     return (
         <div className='home'>
@@ -101,7 +101,12 @@ function Home() {
                     <div className='carrusel-container'>
                         <button onClick={anterior} className='carrusel-btn' aria-label='Anterior'>&#8249;</button>
                         <div className='carrusel-item'>
-                            <div className='producto-imagen' />
+                            <div className='producto-imagen'>
+                                {productos[productoActivo].imagen_url
+                                    ? <img src={productos[productoActivo].imagen_url} alt={productos[productoActivo].nombre} />
+                                    : <div className='imagen-placeholder' />
+                                }
+                            </div>
                             <div className='producto-info'>
                                 <h3>{productos[productoActivo].nombre}</h3>
                                 <p>{productos[productoActivo].descripcion}</p>

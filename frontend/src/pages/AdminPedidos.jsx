@@ -41,10 +41,8 @@ function AdminPedidos() {
     return (
         <div className='admin-page'>
             <h1>Gestión de pedidos</h1>
-
             {error && <p className='error-mensaje'>{error}</p>}
             {exito && <p className='exito-mensaje'>{exito}</p>}
-
             {cargando ? (
                 <p>Cargando pedidos...</p>
             ) : pedidos.length === 0 ? (
@@ -67,7 +65,7 @@ function AdminPedidos() {
                                 <td>{p.cod}</td>
                                 <td>{p.direccion_entrega}</td>
                                 <td>Bs. {Number(p.total).toFixed(2)}</td>
-                                <td><span className={`badge estado-${p.estado}`}>{p.estado}</span></td>
+                                <td><span className={`badge badge-${p.estado}`}>{p.estado}</span></td>
                                 <td>{new Date(p.fecha).toLocaleDateString()}</td>
                                 <td>
                                     <select value={p.estado} onChange={(e) => cambiarEstado(p.cod, e.target.value)}>

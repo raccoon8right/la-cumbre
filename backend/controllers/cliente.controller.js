@@ -3,9 +3,6 @@ import { ObtenerClientes, ObtenerClientePorCi, CrearCliente, ActualizarCliente, 
 export const getClientes = async (req, res) => {
     try {
         const clientes = await ObtenerClientes()
-        if (clientes.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron clientes' })
-        }
         res.status(200).json(clientes)
     } catch (error) {
         res.status(500).json({ error: error.message })

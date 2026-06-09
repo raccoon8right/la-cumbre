@@ -3,9 +3,6 @@ import { ObtenerPersonas, ObtenerPersonaPorCi, CrearPersona, ActualizarPersona, 
 export const getPersonas = async (req, res) => {
     try {
         const personas = await ObtenerPersonas()
-        if (personas.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron personas' })
-        }
         res.status(200).json(personas)
     } catch (error) {
         res.status(500).json({ error: error.message })

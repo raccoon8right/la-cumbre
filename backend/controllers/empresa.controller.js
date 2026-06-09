@@ -3,9 +3,6 @@ import { obtenerEmpresas, obtenerEmpresaPorNIT, crearEmpresa, modificarEmpresaPo
 export const getEmpresas = async (req, res) => {
     try {
         const empresas = await obtenerEmpresas()
-        if (empresas.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron empresas' })
-        }
         res.status(200).json(empresas)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener las empresas' })

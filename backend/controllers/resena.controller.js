@@ -3,9 +3,6 @@ import {ObtenerResenas, ObtenerResenaPorId, CrearResena, ActualizarResena, Elimi
 export const getResenas = async(req, res)=>{
     try {
         const resenas = await ObtenerResenas();
-        if(resenas.length === 0){
-            return res.status(404).json({ error: 'No se encontraron reseñas' });
-        }
         res.status(200).json(resenas);
     } catch (error) {
         res.status(500).json({ error: error.message });

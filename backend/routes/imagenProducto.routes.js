@@ -6,9 +6,9 @@ import express from 'express'
 
 const routes = express.Router()
 
-routes.get('/', verificarToken, getImagen)
-routes.get('/producto/:producto_cod_fk', verificarToken, getImagenPorProducto)
-routes.get('/:id', verificarToken, getImagenPorID)
+routes.get('/', getImagen)
+routes.get('/producto/:producto_cod_fk', getImagenPorProducto)
+routes.get('/:id', getImagenPorID)
 routes.post('/', verificarToken, verificarRol('administrador'), validarImagen, validarCampos, postImagen)
 routes.put('/:id', verificarToken, verificarRol('administrador'), validarImagen, validarCampos, putImagenPorID)
 routes.delete('/:id', verificarToken, verificarRol('administrador'), deleteImagenPorID)

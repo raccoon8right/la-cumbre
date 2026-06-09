@@ -3,9 +3,6 @@ import { ObtenerAdministradores, ObtenerAdministradorPorCi, CrearAdministrador, 
 export const getAdministradores = async (req, res) => {
     try {
         const administradores = await ObtenerAdministradores()
-        if (administradores.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron administradores' })
-        }
         res.status(200).json(administradores)
     } catch (error) {
         res.status(500).json({ error: error.message })

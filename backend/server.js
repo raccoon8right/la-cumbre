@@ -15,6 +15,7 @@ import rutasCliente from './routes/cliente.routes.js'
 import rutasCategoria from './routes/categoria.routes.js'
 import rutasAdministrador from './routes/administrador.routes.js'
 import authroutes from './routes/auth.routes.js'
+import uploadRoutes from './routes/upload.routes.js'
 import axios from 'axios'
 
 const app = express()
@@ -39,6 +40,7 @@ app.use('/api/clientes', rutasCliente)
 app.use('/api/categorias', rutasCategoria)
 app.use('/api/administradores', rutasAdministrador)
 app.use('/api/auth', authroutes)
+app.use('/api/upload', uploadRoutes)
 app.get('/api/minerales', async (req, res) => {
     try {
         const response = await axios.get('https://api.metals.live/v1/spot/commodities', { timeout: 5000 });
@@ -64,9 +66,9 @@ app.get('/api/minerales', async (req, res) => {
             { metal: 'Cobre', price: 4.20, unidad: 'USD/lb', nota: 'Precio estimado (fallback)' },
             { metal: 'Estaño', price: 28.50, unidad: 'USD/lb', nota: 'Precio estimado (fallback)' },
             { metal: 'Antimonio', price: null, unidad: 'No disponible', nota: 'Precio referencial: ~$38,000/t (2024)' }
-        ]);
+        ])
     }
-});
+})
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

@@ -90,25 +90,12 @@ function ProductoDetalle() {
 
     return (
         <div className='producto-detalle'>
-            {/* Imágenes */}
-            <div className='detalle-imagenes'>
-                <div className='imagen-principal'>
-                    {imagenes.length > 0
-                        ? <img src={`${BASE_URL}/${imagenes[0].url}`} alt={producto.nombre} />
-                        : <div className='imagen-placeholder' />
-                    }
-                </div>
-                {imagenes.length > 1 && (
-                    <div className='imagenes-miniaturas'>
-                        {imagenes.map(img => (
-                            <div key={img.id} className='miniatura'>
-                                <img src={`${BASE_URL}/${img.url}`} alt={`${producto.nombre} vista`} />
-                            </div>
-                        ))}
-                    </div>
-                )}
+            <div className='producto-imagen'>
+                {producto.imagen_url
+                    ? <img src={producto.imagen_url} alt={producto.nombre} />
+                    : <div className='imagen-placeholder' />
+                }
             </div>
-
             {/* Info */}
             <div className='detalle-info'>
                 <h1>{producto.nombre}</h1>

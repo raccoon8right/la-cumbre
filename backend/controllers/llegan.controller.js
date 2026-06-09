@@ -3,9 +3,6 @@ import { obtenerLlegan, obtenerLleganPorClaves, crearLlegan, eliminarLlegan } fr
 export const getLlegan = async (req, res) => {
     try {
         const llegan = await obtenerLlegan()
-        if (llegan.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron relaciones llegan' })
-        }
         res.status(200).json(llegan)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener las relaciones llegan' })

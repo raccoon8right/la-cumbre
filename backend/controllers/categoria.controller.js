@@ -3,9 +3,6 @@ import { ObtenerCategorias, ObtenerCategoriaPorId, CrearCategoria, ActualizarCat
 export const getCategorias = async (req, res) => {
     try {
         const categorias = await ObtenerCategorias()
-        if (categorias.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron categorías' })
-        }
         res.status(200).json(categorias)
     } catch (error) {
         res.status(500).json({ error: error.message })

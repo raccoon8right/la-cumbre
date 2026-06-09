@@ -27,15 +27,17 @@ const FORM_VACIO = {
 }
 
 function AdminProductos() {
-    const [productos, setProductos]   = useState([])
+    const [productos, setProductos] = useState([])
     const [categorias, setCategorias] = useState([])
-    const [empresas, setEmpresas]     = useState([])
-    const [form, setForm]             = useState(FORM_VACIO)
-    const [editando, setEditando]     = useState(false)
-    const [cargando, setCargando]     = useState(true)
-    const [guardando, setGuardando]   = useState(false)
-    const [error, setError]           = useState('')
-    const [exito, setExito]           = useState('')
+    const [empresas, setEmpresas] = useState([])
+    const [imagenFile, setImagenFile] = useState(null)
+    const [subiendoImagen, setSubiendoImagen] = useState(false)
+    const [form, setForm] = useState(FORM_VACIO)
+    const [editando, setEditando] = useState(false)
+    const [cargando, setCargando] = useState(true)
+    const [guardando, setGuardando] = useState(false)
+    const [error, setError] = useState('')
+    const [exito, setExito] = useState('')
     const { usuario } = useAuth()
 
     // useCallback evita que fetchData se recree en cada render
@@ -99,15 +101,15 @@ function AdminProductos() {
         setGuardando(true)
         try {
             const data = { ...form, admin_ci_fk: usuario.ci }
-
             if (editando) {
                 await api.put(`/productos/${form.cod}`, data)
+                await subirImagen(form.cod)
                 setExito('Producto actualizado correctamente')
             } else {
                 await api.post('/productos', data)
+                await subirImagen(form.cod)
                 setExito('Producto agregado correctamente')
             }
-
             setForm(FORM_VACIO)
             setEditando(false)
             fetchData()
@@ -147,6 +149,31 @@ function AdminProductos() {
         setExito('')
     }
 
+    const subirImagen = async (cod) => {
+        if (!imagenFile) return
+        setSubiendoImagen(true)
+        try {
+            const formData = new FormData()
+            formData.append('imagen', imagenFile)
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/upload`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                body: formData
+            })
+            const data = await res.json()
+            await api.post('/imagenProductos', {
+                producto_cod_fk: cod,
+                url: data.url,
+                es_principal: 1
+            })
+            setImagenFile(null)
+        } catch {
+            setError('Producto guardado pero error al subir imagen')
+        } finally {
+            setSubiendoImagen(false)
+        }
+    }
+
     return (
         <div className='admin-page'>
             <h1>Gestión de productos</h1>
@@ -155,71 +182,26 @@ function AdminProductos() {
             {exito && <p className='exito-mensaje'>{exito}</p>}
 
             <form onSubmit={handleSubmit} className='admin-form'>
-                <input
-                    name='cod'
-                    placeholder='Código'
-                    value={form.cod}
-                    onChange={handleChange}
-                    disabled={editando}
-                />
-                <input
-                    name='nombre'
-                    placeholder='Nombre'
-                    value={form.nombre}
-                    onChange={handleChange}
-                />
-                <input
-                    name='tipo'
-                    placeholder='Tipo'
-                    value={form.tipo}
-                    onChange={handleChange}
-                />
-                <input
-                    name='material'
-                    placeholder='Material'
-                    value={form.material}
-                    onChange={handleChange}
-                />
-                <textarea
-                    name='descripcion'
-                    placeholder='Descripción'
-                    value={form.descripcion}
-                    onChange={handleChange}
-                />
-                <input
-                    name='precio'
-                    type='number'
-                    min='0'
-                    step='0.01'
-                    placeholder='Precio'
-                    value={form.precio}
-                    onChange={handleChange}
-                />
-                <input
-                    name='stock'
-                    type='number'
-                    min='0'
-                    placeholder='Stock'
-                    value={form.stock}
-                    onChange={handleChange}
-                />
-
-                <select
-                    name='categoria_id_fk'
-                    value={form.categoria_id_fk}
-                    onChange={handleChange}
-                >
+                <input name='cod' placeholder='Código' value={form.cod} onChange={handleChange} disabled={editando} />
+                <input name='nombre' placeholder='Nombre' value={form.nombre} onChange={handleChange} />
+                <input name='tipo' placeholder='Tipo' value={form.tipo} onChange={handleChange} />
+                <input name='material' placeholder='Material' value={form.material} onChange={handleChange} />
+                <textarea name='descripcion' placeholder='Descripción' value={form.descripcion} onChange={handleChange} />
+                <div className='admin-form-imagen'>
+                    <label>Imagen del producto</label>
+                    <input type='file' accept='image/*' onChange={(e) => setImagenFile(e.target.files[0])} />
+                    {subiendoImagen && <small>Subiendo imagen...</small>}
+                </div>
+                <input name='precio' type='number' min='0' step='0.01' placeholder='Precio' value={form.precio} onChange={handleChange} />
+                <input name='stock' type='number' min='0' placeholder='Stock' value={form.stock} onChange={handleChange} />
+                <select name='categoria_id_fk' value={form.categoria_id_fk} onChange={handleChange} >
                     <option value=''>Seleccionar categoría</option>
                     {categorias.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                     ))}
                 </select>
 
-                <select
-                    name='empresa_nit_fk'
-                    value={form.empresa_nit_fk}
-                    onChange={handleChange}
-                >
+                <select name='empresa_nit_fk' value={form.empresa_nit_fk} onChange={handleChange} >
                     <option value=''>Seleccionar empresa</option>
                     {empresas.map(emp => (
                         <option key={emp.nit} value={emp.nit}>{emp.nombre}</option>
@@ -229,12 +211,7 @@ function AdminProductos() {
                 {/* Campo activo solo visible al editar */}
                 {editando && (
                     <label className='admin-form-check'>
-                        <input
-                            name='activo'
-                            type='checkbox'
-                            checked={form.activo === 1}
-                            onChange={handleChange}
-                        />
+                        <input name='activo' type='checkbox' checked={form.activo === 1} onChange={handleChange} />
                         Producto activo
                     </label>
                 )}
@@ -283,12 +260,7 @@ function AdminProductos() {
                                 </td>
                                 <td className='acciones'>
                                     <button onClick={() => handleEditar(p)}>Editar</button>
-                                    <button
-                                        onClick={() => handleEliminar(p.cod)}
-                                        className='btn-peligro'
-                                        disabled={!p.activo}
-                                        title={!p.activo ? 'Ya está desactivado' : 'Desactivar'}
-                                    >
+                                    <button onClick={() => handleEliminar(p.cod)} className='btn-peligro' disabled={!p.activo} title={!p.activo ? 'Ya está desactivado' : 'Desactivar'} >
                                         Desactivar
                                     </button>
                                 </td>

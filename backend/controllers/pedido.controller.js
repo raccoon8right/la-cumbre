@@ -1,14 +1,21 @@
-import { obtenerPedidos, obtenerPedidoPorCod, crearPedido, modificarPedidoPorCod, eliminarPedidoPorCod } from '../models/pedido.model.js'
+import { obtenerPedidos, obtenerPedidosPorCliente, obtenerPedidoPorCod, crearPedido, modificarPedidoPorCod, eliminarPedidoPorCod } from '../models/pedido.model.js'
 
 export const getPedido = async (req, res) => {
     try {
         const pedidos = await obtenerPedidos()
-        if (pedidos.length === 0) {
-            return res.status(404).json({ error: 'No se encontraron pedidos' })
-        }
         res.status(200).json(pedidos)
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener los pedidos' })
+    }
+}
+
+export const getPedidosPorCliente = async (req, res) => {
+    try {
+        const { ci } = req.params
+        const pedidos = await obtenerPedidosPorCliente(ci)
+        res.status(200).json(pedidos)
+    } catch (error) {
+        res.status(500).json({ error: error.message })
     }
 }
 

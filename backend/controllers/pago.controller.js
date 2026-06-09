@@ -3,9 +3,6 @@ import {ObtenerPagos, ObtenerPagoPorId, CrearPago, ActualizarPago, EliminarPago}
 export const getPagos = async(req, res)=>{
     try {
         const pagos = await ObtenerPagos();
-        if(pagos.length === 0 ){
-            return res.status(404).json({ error: 'No se encontraron pagos' });
-        }
         res.status(200).json(pagos) ;
     } catch (error) {
         res.status(500).json({ error: error.message });

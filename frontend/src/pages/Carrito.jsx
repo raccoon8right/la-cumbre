@@ -1,74 +1,93 @@
-/**
- * src/pages/Carrito.jsx
- *
- * Correcciones aplicadas:
- * 1. Bug crítico: no se mutaba el array al actualizar cantidad — ahora usa .map()
- * 2. Controles de cantidad inline (+ / -) sin tener que ir al detalle del producto
- * 3. Validación de stock en tiempo real por item
- * 4. Usa api.js centralizado
- * 5. Confirmación antes de vaciar el carrito
- */
-
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import api from '../services/api.js'
 
-// Helper: leer y guardar carrito en localStorage
 const leerCarrito = () => JSON.parse(localStorage.getItem('carrito') || '[]')
 const guardarCarrito = (items) => localStorage.setItem('carrito', JSON.stringify(items))
+
+const PASO_CARRITO = 1
+const PASO_ENVIO = 2
+const PASO_CONFIRMAR = 3
 
 function Carrito() {
     const [carrito, setCarrito] = useState([])
     const [direccion, setDireccion] = useState('')
+    const [transportes, setTransportes] = useState([])
+    const [transporteId, setTransporteId] = useState('')
+    const [transporteInfo, setTransporteInfo] = useState(null)
+    const [paso, setPaso] = useState(PASO_CARRITO)
     const [cargando, setCargando] = useState(false)
+    const [cargandoT, setCargandoT] = useState(false)
     const [error, setError] = useState('')
-    const { token } = useAuth()
+    const { usuario } = useAuth()
     const navigate = useNavigate()
 
-    useEffect(() => {
-        setCarrito(leerCarrito())
-    }, [])
+    useEffect(() => { setCarrito(leerCarrito()) }, [])
 
-    // Sincronizar estado → localStorage cada vez que cambia el carrito
+    useEffect(() => {
+        if (paso !== PASO_ENVIO) return
+        const fetchTransportes = async () => {
+            setCargandoT(true)
+            try {
+                const res = await api.get('/transportes')
+                setTransportes(Array.isArray(res.data) ? res.data : [])
+            } catch {
+                setError('No se pudieron cargar las opciones de transporte')
+            } finally {
+                setCargandoT(false)
+            }
+        }
+        fetchTransportes()
+    }, [paso])
+
+    useEffect(() => {
+        if (!transporteId) return setTransporteInfo(null)
+        const t = transportes.find(t => String(t.id) === String(transporteId))
+        setTransporteInfo(t || null)
+    }, [transporteId, transportes])
+
     const actualizarCarrito = (nuevoCarrito) => {
         setCarrito(nuevoCarrito)
         guardarCarrito(nuevoCarrito)
     }
 
-    // Bug corregido: usaba existe.cantidad += cantidad (mutación directa)
-    // Ahora crea un nuevo array con .map()
     const cambiarCantidad = (cod, delta) => {
-        const nuevo = carrito.map(item => {
+        actualizarCarrito(carrito.map(item => {
             if (item.cod !== cod) return item
             const nuevaCantidad = item.cantidad + delta
-            // No bajar de 1 ni superar el stock disponible
             if (nuevaCantidad < 1 || nuevaCantidad > item.stock) return item
             return { ...item, cantidad: nuevaCantidad }
-        })
-        actualizarCarrito(nuevo)
+        }))
     }
 
-    const eliminarItem = (cod) => {
-        actualizarCarrito(carrito.filter(item => item.cod !== cod))
-    }
+    const eliminarItem = (cod) => actualizarCarrito(carrito.filter(item => item.cod !== cod))
 
     const vaciarCarrito = () => {
         if (!confirm('¿Vaciar todo el carrito?')) return
         actualizarCarrito([])
     }
 
-    const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0)
-
-    // Verificar si algún item tiene cantidad mayor al stock
+    const totalProductos = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0)
+    const totalEnvio = transporteInfo ? Number(transporteInfo.precio_envio) : 0
+    const totalFinal = totalProductos + totalEnvio
     const hayProblemasStock = carrito.some(item => item.cantidad > item.stock)
+
+    const irAEnvio = () => {
+        setError('')
+        if (!direccion.trim()) return setError('Ingresa una dirección de entrega')
+        if (hayProblemasStock) return setError('Hay productos con stock insuficiente')
+        setPaso(PASO_ENVIO)
+    }
+
+    const irAConfirmar = () => {
+        setError('')
+        if (!transporteId) return setError('Selecciona una opción de transporte')
+        setPaso(PASO_CONFIRMAR)
+    }
 
     const realizarPedido = async () => {
         setError('')
-
-        if (!direccion.trim()) return setError('Ingresa una dirección de entrega')
-        if (hayProblemasStock) return setError('Hay productos con stock insuficiente. Ajusta las cantidades.')
-
         setCargando(true)
         try {
             const cod = `PED-${Date.now()}`
@@ -77,10 +96,9 @@ function Carrito() {
                 cod,
                 estado: 'pendiente',
                 direccion_entrega: direccion,
-                total,
+                total: totalFinal,
             })
 
-            // Registrar el detalle de cada producto en paralelo
             await Promise.all(
                 carrito.map(item =>
                     api.post('/detallePedidos', {
@@ -92,6 +110,12 @@ function Carrito() {
                 )
             )
 
+            await api.post('/llegan', {
+                ci_fk: usuario.ci,
+                cod_pedido_fk: cod,
+                id_transporte_fk: transporteId,
+            })
+
             localStorage.removeItem('carrito')
             navigate('/mis-pedidos')
         } catch (err) {
@@ -101,7 +125,7 @@ function Carrito() {
         }
     }
 
-    if (carrito.length === 0) {
+    if (carrito.length === 0 && paso === PASO_CARRITO) {
         return (
             <div className='carrito-page carrito-vacio'>
                 <h1>Carrito</h1>
@@ -113,113 +137,157 @@ function Carrito() {
 
     return (
         <div className='carrito-page'>
-            <div className='carrito-header'>
-                <h1>Carrito</h1>
-                <button onClick={vaciarCarrito} className='btn-texto-peligro'>
-                    Vaciar carrito
-                </button>
+            <div className='checkout-pasos'>
+                <span className={paso >= PASO_CARRITO ? 'paso activo' : 'paso'}>1. Carrito</span>
+                <span className='paso-separador'>›</span>
+                <span className={paso >= PASO_ENVIO ? 'paso activo' : 'paso'}>2. Envío</span>
+                <span className='paso-separador'>›</span>
+                <span className={paso >= PASO_CONFIRMAR ? 'paso activo' : 'paso'}>3. Confirmar</span>
             </div>
 
-            <div className='carrito-contenido'>
-                <div className='carrito-items'>
-                    {carrito.map(item => (
-                        <div key={item.cod} className='carrito-item'>
-                            <div className='item-imagen'>
-                                {item.imagen_url
-                                    ? <img src={`${import.meta.env.VITE_API_URL.replace('/api', '')}/${item.imagen_url}`} alt={item.nombre} />
-                                    : <div className='imagen-placeholder' />
-                                }
-                            </div>
+            {error && <p className='error-mensaje'>{error}</p>}
 
-                            <div className='item-info'>
-                                <h3>{item.nombre}</h3>
-                                <p className='item-tipo'>{item.tipo}</p>
-                                <p className='item-precio-unit'>Bs. {Number(item.precio).toFixed(2)} c/u</p>
-
-                                {/* Alerta de stock insuficiente */}
-                                {item.cantidad > item.stock && (
-                                    <p className='error-mensaje'>
-                                        Stock insuficiente (máx: {item.stock})
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Controles de cantidad inline */}
-                            <div className='item-cantidad'>
-                                <button
-                                    onClick={() => cambiarCantidad(item.cod, -1)}
-                                    disabled={item.cantidad <= 1}
-                                    aria-label='Reducir cantidad'
-                                >
-                                    −
-                                </button>
-                                <span>{item.cantidad}</span>
-                                <button
-                                    onClick={() => cambiarCantidad(item.cod, +1)}
-                                    disabled={item.cantidad >= item.stock}
-                                    aria-label='Aumentar cantidad'
-                                >
-                                    +
-                                </button>
-                            </div>
-
-                            <div className='item-subtotal'>
-                                <strong>Bs. {(item.precio * item.cantidad).toFixed(2)}</strong>
-                            </div>
-
-                            <button
-                                onClick={() => eliminarItem(item.cod)}
-                                className='btn-eliminar'
-                                aria-label={`Eliminar ${item.nombre}`}
-                            >
-                                ✕
-                            </button>
+            {paso === PASO_CARRITO && (
+                <>
+                    <div className='carrito-header'>
+                        <h1>Carrito</h1>
+                        <button onClick={vaciarCarrito} className='btn-texto-peligro'>Vaciar carrito</button>
+                    </div>
+                    <div className='carrito-contenido'>
+                        <div className='carrito-items'>
+                            {carrito.map(item => (
+                                <div key={item.cod} className='carrito-item'>
+                                    <div className='producto-imagen'>
+                                        {item.imagen_url
+                                            ? <img src={item.imagen_url} alt={item.nombre} />
+                                            : <div className='imagen-placeholder' />
+                                        }
+                                    </div>
+                                    <div className='item-info'>
+                                        <h3>{item.nombre}</h3>
+                                        <p className='item-tipo'>{item.tipo}</p>
+                                        <p className='item-precio-unit'>Bs. {Number(item.precio).toFixed(2)} c/u</p>
+                                        {item.cantidad > item.stock && (
+                                            <p className='error-mensaje'>Stock insuficiente (máx: {item.stock})</p>
+                                        )}
+                                    </div>
+                                    <div className='item-cantidad'>
+                                        <button onClick={() => cambiarCantidad(item.cod, -1)} disabled={item.cantidad <= 1} aria-label='Reducir'>−</button>
+                                        <span>{item.cantidad}</span>
+                                        <button onClick={() => cambiarCantidad(item.cod, +1)} disabled={item.cantidad >= item.stock} aria-label='Aumentar'>+</button>
+                                    </div>
+                                    <div className='item-subtotal'>
+                                        <strong>Bs. {(item.precio * item.cantidad).toFixed(2)}</strong>
+                                    </div>
+                                    <button onClick={() => eliminarItem(item.cod)} className='btn-eliminar' aria-label={`Eliminar ${item.nombre}`}>✕</button>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                        <aside className='carrito-resumen'>
+                            <h2>Resumen</h2>
+                            <div className='resumen-lineas'>
+                                {carrito.map(item => (
+                                    <div key={item.cod} className='resumen-linea'>
+                                        <span>{item.nombre} ×{item.cantidad}</span>
+                                        <span>Bs. {(item.precio * item.cantidad).toFixed(2)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className='resumen-total'>
+                                <strong>Subtotal</strong>
+                                <strong>Bs. {totalProductos.toFixed(2)}</strong>
+                            </div>
+                            <input
+                                type='text'
+                                placeholder='Dirección de entrega...'
+                                value={direccion}
+                                onChange={(e) => setDireccion(e.target.value)}
+                                className='input-direccion'
+                            />
+                            <button onClick={irAEnvio} className='btn-principal btn-checkout' disabled={hayProblemasStock}>
+                                Continuar →
+                            </button>
+                            <Link to='/productos' className='btn-texto'>← Seguir comprando</Link>
+                        </aside>
+                    </div>
+                </>
+            )}
+
+            {paso === PASO_ENVIO && (
+                <div className='checkout-envio'>
+                    <h1>Seleccionar transporte</h1>
+                    <p className='checkout-direccion'>Enviar a: <strong>{direccion}</strong></p>
+                    {cargandoT ? (
+                        <p>Cargando opciones de transporte...</p>
+                    ) : transportes.length === 0 ? (
+                        <p className='error-mensaje'>No hay opciones de transporte disponibles</p>
+                    ) : (
+                        <div className='transportes-lista'>
+                            {transportes.map(t => (
+                                <label key={t.id} className={`transporte-card ${String(transporteId) === String(t.id) ? 'seleccionado' : ''}`}>
+                                    <input
+                                        type='radio'
+                                        name='transporte'
+                                        value={t.id}
+                                        checked={String(transporteId) === String(t.id)}
+                                        onChange={(e) => setTransporteId(e.target.value)}
+                                    />
+                                    <div className='transporte-info'>
+                                        <h3>{t.nombre}</h3>
+                                        <p>Tipo: {t.tipo}</p>
+                                        <p>Confiabilidad: {t.confiabilidad}/5</p>
+                                    </div>
+                                    <div className='transporte-precio'>
+                                        <strong>Bs. {Number(t.precio_envio).toFixed(2)}</strong>
+                                        <small>envío</small>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                    <div className='checkout-acciones'>
+                        <button onClick={() => { setPaso(PASO_CARRITO); setError('') }} className='btn-secundario'>← Volver</button>
+                        <button onClick={irAConfirmar} className='btn-principal' disabled={!transporteId}>Continuar →</button>
+                    </div>
                 </div>
+            )}
 
-                {/* Resumen y checkout */}
-                <aside className='carrito-resumen'>
-                    <h2>Resumen</h2>
-
-                    <div className='resumen-lineas'>
+            {paso === PASO_CONFIRMAR && (
+                <div className='checkout-confirmar'>
+                    <h1>Confirmar pedido</h1>
+                    <div className='confirmar-resumen'>
+                        <h3>Productos</h3>
                         {carrito.map(item => (
                             <div key={item.cod} className='resumen-linea'>
                                 <span>{item.nombre} ×{item.cantidad}</span>
                                 <span>Bs. {(item.precio * item.cantidad).toFixed(2)}</span>
                             </div>
                         ))}
+                        <div className='resumen-linea'>
+                            <span>Subtotal productos</span>
+                            <span>Bs. {totalProductos.toFixed(2)}</span>
+                        </div>
+                        <div className='resumen-linea'>
+                            <span>Envío — {transporteInfo?.nombre}</span>
+                            <span>Bs. {totalEnvio.toFixed(2)}</span>
+                        </div>
+                        <div className='resumen-total'>
+                            <strong>Total</strong>
+                            <strong>Bs. {totalFinal.toFixed(2)}</strong>
+                        </div>
+                        <div className='confirmar-detalle'>
+                            <p><strong>Dirección:</strong> {direccion}</p>
+                            <p><strong>Transporte:</strong> {transporteInfo?.nombre} ({transporteInfo?.tipo})</p>
+                        </div>
                     </div>
-
-                    <div className='resumen-total'>
-                        <strong>Total</strong>
-                        <strong>Bs. {total.toFixed(2)}</strong>
+                    <div className='checkout-acciones'>
+                        <button onClick={() => { setPaso(PASO_ENVIO); setError('') }} className='btn-secundario'>← Volver</button>
+                        <button onClick={realizarPedido} className='btn-principal btn-checkout' disabled={cargando}>
+                            {cargando ? 'Procesando...' : 'Confirmar pedido'}
+                        </button>
                     </div>
-
-                    {error && <p className='error-mensaje'>{error}</p>}
-
-                    <input
-                        type='text'
-                        placeholder='Dirección de entrega...'
-                        value={direccion}
-                        onChange={(e) => setDireccion(e.target.value)}
-                        disabled={cargando}
-                        className='input-direccion'
-                    />
-
-                    <button
-                        onClick={realizarPedido}
-                        className='btn-principal btn-checkout'
-                        disabled={cargando || hayProblemasStock}
-                    >
-                        {cargando ? 'Procesando...' : 'Realizar pedido'}
-                    </button>
-
-                    <Link to='/productos' className='btn-texto'>
-                        ← Seguir comprando
-                    </Link>
-                </aside>
-            </div>
+                </div>
+            )}
         </div>
     )
 }
