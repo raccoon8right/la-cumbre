@@ -1,16 +1,3 @@
-/**
- * src/pages/ProductoDetalle.jsx
- *
- * Correcciones:
- * 1. Bug: si el producto no existía, mostraba "Cargando..." indefinidamente
- *    Ahora tiene estado de error explícito
- * 2. Bug carrito: mutaba el objeto directamente al incrementar cantidad
- *    Ahora usa .map() para crear nuevo array sin mutación
- * 3. Cantidad máxima limitada al stock disponible desde el selector
- * 4. Usa api.js centralizado
- * 5. Feedback visual al agregar al carrito (en lugar de alert())
- */
-
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../services/api.js'
@@ -92,7 +79,7 @@ function ProductoDetalle() {
         <div className='producto-detalle'>
             <div className='producto-imagen'>
                 {producto.imagen_url
-                    ? <img src={producto.imagen_url} alt={producto.nombre} />
+                    ? <img src={producto.imagen_url || 'placeholder.png'} alt={producto.nombre} />
                     : <div className='imagen-placeholder' />
                 }
             </div>

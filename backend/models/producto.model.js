@@ -11,7 +11,12 @@ export const obtenerProductos = async () => {
 }
 
 export const obtenerProductoPorCod = async (cod) => {
-    const [result] = await db.query('SELECT * FROM producto WHERE cod = ?', [cod])
+    const [result] = await db.query(`
+        SELECT p.*, ip.url as imagen_url 
+        FROM producto p
+        LEFT JOIN imagenproducto ip ON p.cod = ip.producto_cod_fk AND ip.es_principal = 1
+        WHERE p.cod = ?
+    `, [cod])
     return result[0]
 }
 
@@ -47,37 +52,16 @@ export const eliminarProductoPorCod = async (cod) => {
     return productoExistente
 }
 
-/**
- * Descuenta stock de múltiples productos en una sola transacción.
- * items: [{ cod, cantidad }]
- * Lanza error si algún producto no tiene stock suficiente.
- */
+
 export const descontarStock = async (items) => {
-    const connection = await db.getConnection()
-    try {
-        await connection.beginTransaction()
-
-        for (const { cod, cantidad } of items) {
-            // Lock de fila para evitar condiciones de carrera
-            const [rows] = await connection.query(
-                'SELECT stock FROM producto WHERE cod = ? FOR UPDATE',
-                [cod]
-            )
-            if (!rows[0]) throw new Error(`Producto ${cod} no encontrado`)
-            if (rows[0].stock < cantidad) {
-                throw new Error(`Stock insuficiente para el producto ${cod} (disponible: ${rows[0].stock})`)
-            }
-            await connection.query(
-                'UPDATE producto SET stock = stock - ? WHERE cod = ?',
-                [cantidad, cod]
-            )
+    for (const { cod, cantidad } of items) {
+        // Verificar stock
+        const [rows] = await db.query('SELECT stock FROM producto WHERE cod = ?', [cod]);
+        if (!rows[0]) throw new Error(`Producto ${cod} no encontrado`);
+        if (rows[0].stock < cantidad) {
+            throw new Error(`Stock insuficiente para ${cod}`);
         }
-
-        await connection.commit()
-    } catch (err) {
-        await connection.rollback()
-        throw err
-    } finally {
-        connection.release()
+        // Descontar
+        await db.query('UPDATE producto SET stock = stock - ? WHERE cod = ?', [cantidad, cod]);
     }
-}
+};

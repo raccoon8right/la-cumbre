@@ -1,20 +1,3 @@
-/**
- * src/pages/MisPedidos.jsx
- *
- * Correcciones:
- * 1. Bug crítico: antes traía TODOS los pedidos (misma llamada que el admin)
- *    Ahora filtra por usuario.ci en el frontend mientras el backend
- *    no tenga un endpoint /pedidos/mis-pedidos o /pedidos?cliente=ci
- *
- *    NOTA: Lo ideal es que el backend filtre por el JWT directamente.
- *    Cuando el backend lo soporte, solo cambiar api.get('/pedidos/mis-pedidos')
- *    y quitar el .filter() de aquí.
- *
- * 2. Usa api.js centralizado
- * 3. useAuth para leer usuario.ci
- * 4. Estado vacío con link a productos
- */
-
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'

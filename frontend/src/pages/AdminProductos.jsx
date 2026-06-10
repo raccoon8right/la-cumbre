@@ -1,14 +1,3 @@
-/**
- * src/pages/AdminProductos.jsx
- *
- * Correcciones aplicadas:
- * 1. Usa api.js centralizado — sin headers manuales ni VITE_API_URL repetido
- * 2. Valida que usuario.ci exista antes de enviar (evita crash silencioso)
- * 3. fetchData con useCallback para no recrearse en cada render
- * 4. Código comentado eliminado
- * 5. Campo "activo" manejado correctamente como checkbox en el form
- */
-
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import api from '../services/api.js'

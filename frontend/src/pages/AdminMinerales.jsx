@@ -1,11 +1,3 @@
-/**
- * src/pages/AdminMinerales.jsx
- *
- * Actualización:
- * - Maneja price: null para minerales sin API gratuita (antimonio)
- * - La respuesta de api.metals.live ya viene como array — normalizarMinerales lo maneja
- */
-
 import { useState, useEffect } from 'react'
 import api from '../services/api.js'
 

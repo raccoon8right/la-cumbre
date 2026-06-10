@@ -8,7 +8,7 @@ const LINKS_CLIENTE = [
     { to: '/productos', label: 'Productos' },
     { to: '/carrito', label: 'Carrito' },
     { to: '/mis-pedidos', label: 'Mis pedidos' },
-    { to: '/contactanos', label: 'Contactanos'},
+    { to: '/contactanos', label: 'Contactanos' },
 ]
 
 // Links para el panel admin — sidebar/topbar separado
@@ -18,7 +18,7 @@ const LINKS_ADMIN = [
     { to: '/admin/categorias', label: 'Categorías' },
     { to: '/admin/empresas', label: 'Empresas' },
     { to: '/admin/pedidos', label: 'Pedidos' },
-    { to: '/admin/trasnportes', label: 'Transportes'},
+    { to: '/admin/trasnportes', label: 'Transportes' },
     { to: '/admin/minerales', label: 'Minerales' },
 ]
 
@@ -78,7 +78,12 @@ export default function Navbar() {
             </div>
 
             {/* Botón hamburguesa mobile */}
-            <button className='navbar-hamburguesa' onClick={() => setMenuAbierto(prev => !prev)} aria-label='Menú' aria-expanded={menuAbierto} >
+            <button
+                className={`navbar-hamburguesa ${menuAbierto ? 'abierto' : ''}`}
+                onClick={() => setMenuAbierto(prev => !prev)}
+                aria-label='Menú'
+                aria-expanded={menuAbierto}
+            >
                 <span /><span /><span />
             </button>
 

@@ -1,19 +1,16 @@
-/**
- * src/pages/AdminDashboard.jsx
- *
- * Correcciones:
- * 1. Usa api.js centralizado
- * 2. Endpoint de clientes corregido: /clientes (no /administradores)
- * 3. Promise.allSettled — si una estadística falla, las demás igual se muestran
- * 4. useCallback en fetchStats
- */
-
 import { useState, useEffect, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { generarReportePedidos, generarReporteProductos } from '../utils/generarReporte.js'
 import api from '../services/api.js'
 
-const COLORES = ['#0F3B7A', '#B8A060', '#1A55A8', '#C8B87A']
+const COLORES = [
+    '#0F3B7A', // azul principal (pendiente)
+    '#B8A060', // dorado (enviado)
+    '#2E72CC', // azul claro (entregado)
+    '#D5CCBB', // crema (cancelado)
+    '#1A55A8', // azul medio (otros)
+    '#C8B87A'  // dorado claro
+];
 
 function AdminDashboard() {
     const [stats, setStats] = useState({ productos: 0, pedidos: 0, clientes: 0, empresas: 0 })
@@ -35,15 +32,15 @@ function AdminDashboard() {
             ])
 
             const prod = prodRes.status === 'fulfilled' ? prodRes.value.data : []
-            const ped  = pedRes.status  === 'fulfilled' ? pedRes.value.data  : []
-            const cli  = cliRes.status  === 'fulfilled' ? cliRes.value.data  : []
-            const emp  = empRes.status  === 'fulfilled' ? empRes.value.data  : []
+            const ped = pedRes.status === 'fulfilled' ? pedRes.value.data : []
+            const cli = cliRes.status === 'fulfilled' ? cliRes.value.data : []
+            const emp = empRes.status === 'fulfilled' ? empRes.value.data : []
 
             setStats({
                 productos: Array.isArray(prod) ? prod.length : 0,
-                pedidos:   Array.isArray(ped)  ? ped.length  : 0,
-                clientes:  Array.isArray(cli)  ? cli.length  : 0,
-                empresas:  Array.isArray(emp)  ? emp.length  : 0,
+                pedidos: Array.isArray(ped) ? ped.length : 0,
+                clientes: Array.isArray(cli) ? cli.length : 0,
+                empresas: Array.isArray(emp) ? emp.length : 0,
             })
 
             if (Array.isArray(ped)) {
@@ -118,9 +115,9 @@ function AdminDashboard() {
                             <ResponsiveContainer width='100%' height={300}>
                                 <BarChart data={[
                                     { name: 'Productos', valor: stats.productos },
-                                    { name: 'Pedidos',   valor: stats.pedidos },
-                                    { name: 'Clientes',  valor: stats.clientes },
-                                    { name: 'Empresas',  valor: stats.empresas },
+                                    { name: 'Pedidos', valor: stats.pedidos },
+                                    { name: 'Clientes', valor: stats.clientes },
+                                    { name: 'Empresas', valor: stats.empresas },
                                 ]}>
                                     <XAxis dataKey='name' />
                                     <YAxis allowDecimals={false} />
