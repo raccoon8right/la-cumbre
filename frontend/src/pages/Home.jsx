@@ -1,13 +1,7 @@
-/**
- * src/pages/Home.jsx
- *
- * Actualización:
- * - Maneja price: null para antimonio en la sección de minerales
- */
-
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api.js'
+import logo from '../assets/images/logo.jpg'
 
 const normalizarMinerales = (data) => {
     if (Array.isArray(data)) return data
@@ -65,7 +59,9 @@ function Home() {
                     <p>Decoraciones artesanales en metal</p>
                     <Link to='/productos' className='btn-principal'>Ver productos</Link>
                 </div>
-                <div className='hero-imagen' />
+                <div className='hero-imagen'>
+                    <img src={logo} alt='logo' />
+                </div>
             </section>
 
             {errorPrincipal && (

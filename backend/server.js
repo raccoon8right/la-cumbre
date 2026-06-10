@@ -60,7 +60,7 @@ app.get('/api/minerales', async (req, res) => {
         });
         res.json(lista);
     } catch (error) {
-        console.error('Error al obtener precios de minerales:', error.message);
+        //console.error('Error al obtener precios de minerales:', error.message);
         // Fallback: devolver datos estáticos para que el frontend no rompa
         res.status(200).json([
             { metal: 'Cobre', price: 4.20, unidad: 'USD/lb', nota: 'Precio estimado (fallback)' },
